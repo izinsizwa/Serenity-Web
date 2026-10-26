@@ -14,11 +14,27 @@ export const useAuthStore = defineStore('auth', () => {
   const isClinicAdmin   = computed(() => user.value?.role === UserRole.ClinicAdmin)
   const fullName        = computed(() => user.value ? `${user.value.firstName} ${user.value.lastName}` : '')
 
+  const roleByName: Record<string, UserRole> = {
+  Client: UserRole.Client,
+  Therapist: UserRole.Therapist,
+  Admin: UserRole.Admin,
+  SuperAdmin: UserRole.SuperAdmin,
+}
+
+function normalizeUser(u: any): AccountUser | null {
+  if (!u) return null
+  return {
+    ...u,
+    userId: u.userId ?? u.id,
+    role: typeof u.role === 'string' ? roleByName[u.role] : u.role,
+  }
+}
+
   const portalRoute = computed(() => {
     if (!user.value) return '/auth/login'
     switch (user.value.role) {
       case UserRole.Client:          return '/client/dashboard'
-      case UserRole.Therapist:       return '/therapist/dashboard'
+      case UserRole.Therapist:       
       case UserRole.ClinicTherapist: return '/therapist/dashboard'
       case UserRole.ClinicAdmin:     return '/clinic/dashboard'
       case UserRole.Admin:
@@ -32,9 +48,11 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     try {
       const api = useApi()
-      const res = await api.post<{ token: string; refreshToken: string; user: AccountUser }>('/auth/login', credentials)
+      const res = await api.post<AuthResponse>('/auth/login', credentials)
+      
       token.value = res.token
-      user.value  = res.user
+      // Match C# AuthResult property 'accountUser'
+      user.value = normalizeUser(res.accountUser ?? res.user)
       return res
     } catch (e: any) {
       error.value = e.message || 'Login failed'
@@ -44,25 +62,46 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function register(data: RegisterRequest) {
-    isLoading.value = true
-    error.value = null
-    try {
-      const api = useApi()
-      const endpoint = data.role === UserRole.Therapist
+  
+
+async function register(data: RegisterRequest) {
+  isLoading.value = true
+  error.value = null
+
+  try {
+    const api = useApi()
+
+    const endpoint =
+      data.role === UserRole.Therapist
         ? '/auth/register/therapist'
         : '/auth/register/client'
-      const res = await api.post<AuthResponse>(endpoint, data)
-      token.value = res.token
-      user.value  = res.user
-      return res
-    } catch (e: any) {
-      error.value = e.message || 'Registration failed'
-      throw e
-    } finally {
-      isLoading.value = false
+
+    const res = await api.post<AuthResponse>(endpoint, data)
+
+    // The backend returns a token and accountUser/user,
+    // not necessarily a success property.
+    const registeredUser = res.accountUser ?? res.user
+
+    if (!res.token || !registeredUser) {
+      throw new Error(
+        res.errorMessage || 'Registration response is incomplete.'
+      )
     }
+
+    token.value = res.token
+    user.value = registeredUser
+
+    return res
+  } catch (e: unknown) {
+    error.value =
+      e instanceof Error ? e.message : 'Registration failed'
+    throw e
+  } finally {
+    isLoading.value = false
   }
+}
+
+
 
   async function fetchMe() {
     if (!token.value) return

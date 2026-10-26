@@ -2,7 +2,7 @@
 import { UserRole } from '~/types'
 definePageMeta({ layout: 'auth' })
 
-const route  = useRouter()
+const router = useRouter()
 const auth   = useAuthStore()
 
 // Step 1 = role select, Step 2 = personal info, Step 3 = security
@@ -10,14 +10,14 @@ const step       = ref(1)
 const roleChoice = ref<'client' | 'therapist' | null>(null)
 
 const form = reactive({
-  firstName:   '',
-  lastName:    '',
-  email:       '',
-  password:    '',
+  firstName:       '',
+  lastName:        '',
+  email:           '',
+  password:        '',
   confirmPassword: '',
-  phoneNumber: '',
-  dateOfBirth: '',
-  gender:      '',
+  phoneNumber:     '',
+  dateOfBirth:     '',
+  gender:          '',
 })
 
 const showPassword = ref(false)
@@ -47,20 +47,34 @@ function validateStep3() {
 }
 
 async function handleRegister() {
+  // Re-verify both step 2 and step 3 before submission
+  if (!validateStep2()) {
+    step.value = 2
+    return
+  }
   if (!validateStep3()) return
+
   try {
-    await auth.register({
-      firstName:   form.firstName,
-      lastName:    form.lastName,
-      email:       form.email,
+    // Safely parse date input into valid ISO DateTime string
+    const parsedDate = new Date(form.dateOfBirth)
+    const formattedDob = !isNaN(parsedDate.getTime()) 
+      ? parsedDate.toISOString() 
+      : new Date().toISOString()
+
+    const payload = {
+      firstName:   form.firstName.trim(),
+      lastName:    form.lastName.trim(),
+      email:       form.email.trim(),
       password:    form.password,
-      phoneNumber: form.phoneNumber,
-      dateOfBirth: form.dateOfBirth,
+      phoneNumber: form.phoneNumber.trim(),
+      dateOfBirth: formattedDob,
       gender:      form.gender,
       role:        roleChoice.value === 'therapist' ? UserRole.Therapist : UserRole.Client,
-    })
-    await route.push(auth.portalRoute)
-  } catch (e) {
+    }
+
+    await auth.register(payload)
+    await router.push(auth.portalRoute)
+  } catch (e: any) {
     console.error('Register failed:', e)
   }
 }

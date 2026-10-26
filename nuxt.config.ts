@@ -30,6 +30,7 @@ export default defineNuxtConfig({
     configPath: 'tailwind.config.ts',
   },
 
+  
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://localhost:7230/api',

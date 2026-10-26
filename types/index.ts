@@ -579,20 +579,38 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-  firstName:   string
-  lastName:    string
-  email:       string
-  password:    string
-  phoneNumber: string
-  dateOfBirth: string
-  gender:      string
-  role:        UserRole
+  firstName:                    string
+  lastName:                     string
+  email:                        string
+  password:                     string
+  phoneNumber:                  string
+  dateOfBirth:                  string
+  gender:                       string
+  role:                         UserRole
+  address?:                     string
+  city?:                        string
+  province?:                    string
+  postalCode?:                  string
+  idNumber?:                    string
+  preferredLanguage?:           string
+  presentingConcerns?:          string
+  mentalHealthHistory?:         string
+  currentMedications?:          string
+  allergies?:                   string
+  hasMedicalAid?:               boolean
+  medicalAidNumber?:            string
+  emergencyContactName?:        string
+  emergencyContactPhone?:       string
+  emergencyContactRelationship?: string
 }
 
 export interface AuthResponse {
   token:  string
-  refreshToken: string
-  user:         AccountUser
+  refreshToken?: string
+  success?: boolean
+  errorMessage?: string
+  user?:         AccountUser
+  accountUser?: AccountUser
 }
 
 // ─── API Wrappers ────────────────────────────────────────────

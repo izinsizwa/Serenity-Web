@@ -1,4 +1,4 @@
-class ApiClient {
+export class ApiClient {
   private baseUrl: string
 
   constructor(baseUrl: string) {
@@ -13,18 +13,45 @@ class ApiClient {
     return headers
   }
 
+
+private async handleError(res: Response): Promise<never> {
+  const responseText = await res.text()
+  let message = ''
+
+  if (responseText) {
+    try {
+      const err = JSON.parse(responseText)
+
+      if (err?.errors && typeof err.errors === 'object') {
+        message = Object.values(err.errors)
+          .flat()
+          .filter(Boolean)
+          .join('\n')
+      }
+
+      message ||= 
+        err?.errorMessage ||
+        err?.message ||
+        err?.error ||
+        err?.title ||
+        ''
+    } catch {
+      message = responseText
+    }
+  }
+
+  throw new Error(
+    message || `HTTP ${res.status}: ${res.statusText || 'Request failed'}`
+  )
+}
+
+
   async get<T>(endpoint: string): Promise<T> {
     const res = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'GET',
       headers: this.getHeaders(),
     })
-    if (!res.ok) {
-      const err = await res.json().catch(() => null)
-      const message = err?.errors
-        ? Object.values(err.errors).flat().join(', ')
-        : err?.message || err?.error || `HTTP ${res.status}`
-      throw new Error(message)
-    }
+    if (!res.ok) await this.handleError(res)
     return res.json() as Promise<T>
   }
 
@@ -34,13 +61,7 @@ class ApiClient {
       headers: this.getHeaders(),
       body: JSON.stringify(body),
     })
-    if (!res.ok) {
-      const err = await res.json().catch(() => null)
-      const message = err?.errors
-        ? Object.values(err.errors).flat().join(', ')
-        : err?.message || err?.error || `HTTP ${res.status}`
-      throw new Error(message)
-    }
+    if (!res.ok) await this.handleError(res)
     return res.json() as Promise<T>
   }
 
@@ -50,13 +71,7 @@ class ApiClient {
       headers: this.getHeaders(),
       body: JSON.stringify(body),
     })
-    if (!res.ok) {
-      const err = await res.json().catch(() => null)
-      const message = err?.errors
-        ? Object.values(err.errors).flat().join(', ')
-        : err?.message || err?.error || `HTTP ${res.status}`
-      throw new Error(message)
-    }
+    if (!res.ok) await this.handleError(res)
     return res.json() as Promise<T>
   }
 
@@ -65,13 +80,7 @@ class ApiClient {
       method: 'DELETE',
       headers: this.getHeaders(),
     })
-    if (!res.ok) {
-      const err = await res.json().catch(() => null)
-      const message = err?.errors
-        ? Object.values(err.errors).flat().join(', ')
-        : err?.message || err?.error || `HTTP ${res.status}`
-      throw new Error(message)
-    }
+    if (!res.ok) await this.handleError(res)
     return res.json() as Promise<T>
   }
 
@@ -81,10 +90,7 @@ class ApiClient {
       headers: this.getHeaders(true),
       body: formData,
     })
-    if (!res.ok) {
-      const err = await res.text()
-      throw new Error(err || `HTTP ${res.status}`)
-    }
+    if (!res.ok) await this.handleError(res)
     return res.json() as Promise<{ data: T; message: string; success: boolean }>
   }
 }

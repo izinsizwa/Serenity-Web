@@ -18,9 +18,9 @@ async function load() {
   loading.value = true
   try {
     const res = await adminUsers.getUsers(page.value, 20, search.value || undefined, roleFilter.value ?? undefined)
-    items.value      = res.data?.items ?? []
-    totalPages.value = res.data?.totalPages ?? 1
-    totalCount.value = res.data?.totalCount ?? 0
+    items.value      = res.items ?? []
+    totalPages.value = res.totalPages ?? 1
+    totalCount.value = res.totalCount ?? 0
   } finally { loading.value = false }
 }
 
@@ -34,8 +34,8 @@ async function confirmToggle() {
   } finally { toggling.value = false }
 }
 
-const roleLabels: Record<number,string> = { 0:'Super Admin',1:'Admin',2:'Client',3:'Therapist',4:'Clinic Admin',5:'Clinic Therapist' }
-const roleVariants: Record<number,any>  = { 0:'red',1:'red',2:'green',3:'clay',4:'terra',5:'clay' }
+const roleLabels: Record<number,string> = { 0:'Client', 1:'Therapist', 2:'Admin', 3:'Super Admin' }
+const roleVariants: Record<number,any>  = { 0:'green', 1:'clay', 2:'red', 3:'red' }
 
 const debouncedSearch = useDebounceFn(() => { page.value = 1; load() }, 400)
 watch(search, debouncedSearch)
